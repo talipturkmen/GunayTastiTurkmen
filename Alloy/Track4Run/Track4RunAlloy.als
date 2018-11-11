@@ -1,3 +1,4 @@
+open util/integer
 sig Time{
 		date: one Int,
 		hour: one Int,
