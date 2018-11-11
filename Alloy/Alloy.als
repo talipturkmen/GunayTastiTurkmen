@@ -1,13 +1,13 @@
 open util/integer
 
-sig Time{
+ sig Time{
 		date: one Int,
 		hour: one Int,
 		minutes: one Int
 }
 { hour >=0 and hour<=5 and
-	minutes >=0 and minutes<=7 and
-	date>=1 and date <=20
+	minutes >=0 and minutes<=5 and
+	date>=1 and date <=2
  }
 
 sig Location {
@@ -67,7 +67,7 @@ abstract sig Service{}
 one sig AutomatedSOS extends Service{}
 one sig Track4Run extends Service{}
 
-sig RunningOrganization{
+one sig RunningOrganization{
 	organizer: one ThirdParty,
 	runners: some IndividualUser,
 	spectators: set IndividualUser,
@@ -238,11 +238,11 @@ fact organizationPathRelation{
 }
 --Organizer of run should activate Track4run
 fact organizerTrack4RunConstraint{
-	all t:ThirdParty, tr:Track4Run| #(t.organizations)>0 => tr in t.services
+	all t:ThirdParty, tr:Track4Run| #(t.organizations)>0 iff tr in t.services
 }
 --Runner should activate Track4Run
 fact runnerTrack4RunConstraint{
-	all t:IndividualUser, tr:Track4Run| #(t.participatedOrganizations)>0 => tr in t.services
+	all t:IndividualUser | #(t.participatedOrganizations)>0 iff Track4Run in t.services
 }
 --Runner should have at least 1 locationData
 fact runnerLocationDataConstraint{
@@ -317,13 +317,14 @@ pred showSosUsers{
 pred isThereAnonymDataRequest{
 	some AnonymDataRequest
 }
+--Organization asserts
 assert  isThereUserEnrolledAnOrganizationAsSpectatorAndParticipator{
 	no u:IndividualUser| #(u.spectatedOrganizations & u.participatedOrganizations) >0
 }
 assert someOrganizationsDoesntHaveAllRunnersData{
 	all o:RunningOrganization, u:IndividualUser| u in o.runners => (u.data & LocationData)  in o.locationData
 }
-/*
+
 pred showForData4Help{
 	(some u:IndividualUser|#(u.preConfirmedThirdParties)>0) and
 	(some t:ThirdParty|#(t.requests)>0) and
@@ -333,13 +334,12 @@ pred showForData4Help{
 	(no SosNotification) and
 	#(Location)=2
 	
-} */
-pred showForTrack4Run{
-	some RunningOrganization
-}
+} 
+pred showForTrack4Run{ one RunningOrganization}
 run showForTrack4Run 
---run showForData4Help for 5 but 3 IndividualUser,2 ThirdParty,1 Received, 1 AnonymDataRequest, 1 Approved, 1 Rejected
-/*
+
+run showForData4Help for 5 but 3 IndividualUser,2 ThirdParty,1 Received, 1 AnonymDataRequest, 1 Approved, 1 Rejected
+
 check isThereUserEnrolledAnOrganizationAsSpectatorAndParticipator
 check assert_checkRequestAndResponsesThirdParty
 check assert_requestRejectedFacts
@@ -348,5 +348,6 @@ check someOrganizationsDoesntHaveAllRunnersData
 run isThereAnonymDataRequest
 run requestIndividualData
 check checkExceedingLimits
-pred show{(some u:IndividualUser|)}
-run show for 2*/
+pred show{
+}
+run show 
