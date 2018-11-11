@@ -1,6 +1,8 @@
 open util/integer
 
-sig Date{}
+sig Date{
+	day:one Int
+}
 sig Time{
 		date: one Date,
 		hour: one Int,
@@ -47,10 +49,11 @@ sig IndividualUser{
 	data:some Data,
 	services: set Service,
 	preConfirmedThirdParties: set ThirdParty,
-	requests: set IndividualDataRequest,
+	receivedRequests: set IndividualDataRequest,
 	participatedOrganizations:set RunningOrganization,
 	spectatedOrganizations: set RunningOrganization		
 }
+
 
 sig ThirdParty{
 	requests: set Request,
@@ -85,13 +88,14 @@ abstract sig Request{
 	requestedData: one Data,
 	status: RequestStatus,
 	response: one Response,
+	requestedBy: one ThirdParty
 }
 {
-	some t:ThirdParty | this in t.requests
+	this in requestedBy.requests
 }
 
 sig IndividualDataRequest extends Request{
-	user: some IndividualUser
+	user: one IndividualUser
 }
 sig AnonymDataRequest  extends Request{
 }
@@ -115,38 +119,76 @@ abstract sig RequestStatus{
 one sig Rejected extends RequestStatus{}
 one sig Approved extends RequestStatus{}
 
+--rejected Requests' responses should be rejection sent and responseData should be empty
 fact requestRejectedFacts{
-	all req: Request,res:Response| req.response=res and req.status=Rejected => res.status=RejectionSent and #(res.responseData)=0
+	all req: Request,res:Response| req.response=res and req.status=Rejected => res.status=RejectionSent and #(res.responseData)=0 and res.sentTo=req.requestedBy
 
 }
-fact requestRejectedFacts{
-	all req: Request,res:Response| req.response=res and req.status=Approved => res.status=DataSent and res.responseData= req.requestedData
+--approved Requests' responses should be DataSent and responseDataShould be equal to RequestedData 
+fact requestApprovedFacts{
+	all req: Request,res:Response| req.response=res and req.status=Approved => res.status=DataSent and res.responseData= req.requestedData and res.sentTo=req.requestedBy
 }
 
+--every request should have it's own response
 fact differentRequestDifferentResponse{
 	no disj r1,r2:Request| r1.response=r2.response 
 }
 
-fact requestApprovedFacts{
-	all r: Request,res:Response | r.status in Approved and r.response=Response=>res.status in DataSent
-	
-}
+--Every user's data should be identical
 fact differentUserDifferentData{
-	no disj u1,u2:IndividualUser| u1.data=u2.data and
-	no disj d1,d2:Data|d1.user=d2.user
-}
-fact allResponsesAreRelatedToARequest{
-}
-fact allIndividualRequestsAreRelatedToUser{
-	all r:IndividualDataRequest, u:IndividualUser| r.user=u<=>u.requests=r
+	no disj u1,u2:IndividualUser| u1.data=u2.data 
 }
 
+--There should be bidirectional relation between IndividualDataRequest and user
+fact allIndividualRequestsAreRelatedToUser{
+	all r:IndividualDataRequest, u:IndividualUser| r.user=u iff r in u.receivedRequests
+}
+
+fact bidirectionalRelationBetweenDataAndUser{
+	all d:Data,u:IndividualUser| d.user=u iff d in u.data
+}
+
+-- Requested data of IndividualDataRequest and User should be related
+fact DataRelationBetweenUserAndIndReq{
+		all r:IndividualDataRequest, u:IndividualUser| r.user=u iff r.requestedData.user=u
+}
+
+--Every usedDrugs should be related with at least one disease
 fact checkUsedDrugs{
 	all d: UsedDrugs| some c:ChronicDisease| d in c.drugs
 }
-fact differentRequestDifferentThirdPArty{
+--Every request should be identical to it's ThirdParty
+fact differentRequestDifferentThirdParty{
 	no disj t1,t2: ThirdParty|  #(t1.requests & t2.requests)>0
 }
 
-pred show{}
-run show for 3
+--all Individual request which are requested by preconfirmedThirdparty should be approved
+fact IndReqOfPreConfirmedShouldBeApproved{
+	all i:IndividualDataRequest |i.requestedBy in i.user.preConfirmedThirdParties=> i.status=Approved
+}
+assert assert_differentRequestDifferentResponse{
+	no r1,r2:Request| r1.response=r2.response 
+}
+assert assert_requestRejectedFacts{ 
+	all req: Request,res:Response| req.response=res and req.status=Rejected => res.status=RejectionSent and #(res.responseData)=0
+}
+assert assert_requestApprovedFacts{
+	all req: Request,res:Response| req.response=res and req.status=Approved => res.status=DataSent and res.responseData= req.requestedData
+}
+assert assert_checkRequestAndResponsesThirdParty{
+	all req:Request, res:Response| req.response=res=> req.requestedBy=res.sentTo
+}
+pred requestIndividualData[u:IndividualUser,d:Data,s:RequestStatus,r:Response,rb:ThirdParty,t:Time, i:IndividualDataRequest]{
+	i.user=u
+	i.requestedData=d
+	i.status=s
+	i.response=r
+	i.requestedBy=rb
+	i.requestTime=t
+}
+run requestIndividualData
+--pred show{}
+--run show for 3
+check assert_checkRequestAndResponsesThirdParty
+check assert_requestRejectedFacts
+check assert_differentRequestDifferentResponse
