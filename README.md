@@ -16,6 +16,6 @@ Finally, TrackMe realizes that another great source of revenues could be the dev
  * Matteo Rossi - DEIB department - Politecnico di Milano
  
 ### Students
- * Talip Turkmen ([@talipturkmen](http://github.com/talipturkmen))
+ * [Talip Turkmen](http://github.com/talipturkmen)
  * Ezgi Tasti
  * Buse Gunay
