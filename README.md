@@ -17,5 +17,5 @@ Finally, TrackMe realizes that another great source of revenues could be the dev
  
 ### Students
  * [Talip Turkmen](http://github.com/talipturkmen)
- * Ezgi Tasti
+ * [Ezgi Tasti] (https://github.com/Ezgitst)
  * Buse Gunay
